@@ -1,98 +1,101 @@
-# Axis Mirror Tool / 对称镜像工具
+# Axis Mirror Tool
 
-一个基于 **任意自定义对称轴** 的在线图像镜像工具，支持静态图和 GIF 动画。  
-通过拖放两个控制点定义对称轴，实时预览镜像效果。
+An online image mirror tool based on **arbitrary custom symmetry axes**. Supports both static images and GIF animations. Place two draggable control points to define the mirror axis and preview the effect in real time.
 
-## 功能特性
+[中文文档](./README-cn.md)
 
-- **自定义对称轴**：在图像上放置两个可拖动的锚点，定义任意角度和位置的镜像轴
-- **保留侧切换**：一键切换保留轴的哪一侧，产生不同效果
-- **多层镜像**：将右侧结果应用到左侧，反复叠加对称变换
-- **GIF 支持**：完整解码 GIF 动画，对每一帧应用镜像变换后重新编码导出
-- **随机帧顺序**：针对 GIF，可打乱帧顺序产生随机动画效果
-- **中英文自动切换**：根据浏览器语言自动适配，无需手动切换
-- **暗色/亮色模式**：跟随系统或手动切换
-- **响应式设计**：桌面横屏并排显示，手机竖屏堆叠显示
-- **触摸优化**：控制点支持手指拖拽，移动端交互流畅
+## Features
 
-## 使用方法
+- **Custom Symmetry Axis**: Place two draggable anchor points on the image to define a mirror axis at any angle and position
+- **Swap Mirror Side**: Toggle which side of the axis to keep with one click
+- **Multi-layer Mirroring**: Apply the result as a new source for repeated symmetrical transformations
+- **GIF Support**: Decode GIF animations, apply mirror transforms to every frame, and re-encode for export
+- **Random Frame Order**: Shuffle GIF frames for unpredictable animation effects
+- **Auto-detect Language**: Switches between Chinese and English based on browser language, no manual toggle needed
+- **Dark/Light Mode**: Follows system preference or toggle manually
+- **Responsive Design**: Side-by-side on desktop, stacked on mobile
+- **Touch Optimized**: Control points support finger dragging on mobile devices
 
-### 1. 打开页面
-直接用浏览器打开 `index.html`（无需任何构建工具或服务器，部分浏览器可能需要通过 HTTP 服务访问才能读取本地文件）。
+## Usage
 
-如果遇到跨域问题，可以使用：
+### 1. Open the Page
+Open `index.html` directly in a browser (no build tools or server required, though some browsers need an HTTP server to access local files).
+
+If you encounter CORS issues, run:
 ```bash
-# Python 简单 HTTP 服务
+# Python simple HTTP server
 python3 -m http.server 8080
-# 然后访问 http://localhost:8080
+# Then visit http://localhost:8080
 ```
 
-### 2. 上传图像
-- 点击上传区域选择文件，或将图片拖拽到上传区域
-- 支持格式：PNG、JPG、GIF、WebP
-- 最大文件尺寸：50MB
+### 2. Upload an Image
+- Click the upload area to select a file, or drag & drop an image
+- Supported formats: PNG, JPG, GIF, WebP
+- Max file size: 50MB
 
-### 3. 调整对称轴
-- 图像上会显示两个彩色圆点（A 和 B），它们定义了一条无限镜像轴
-- **拖动 A 或 B 点**：改变对称轴的位置和角度
-- 半透明虚线显示对称轴延伸方向
-- 蓝色箭头指示当前保留侧（法线方向）
+### 3. Adjust the Mirror Axis
+- Two colored dots (A and B) appear on the image, defining an infinite mirror axis
+- **Drag A or B** to change the axis position and angle
+- A semi-transparent dashed line shows the axis extension
+- A blue arrow indicates the current kept side (normal direction)
 
-### 4. 交换镜像侧
-点击 **"交换镜像侧"** 按钮切换保留哪一侧的图像，右侧预览实时更新。
+### 4. Swap Mirror Side
+Click **"Swap Mirror Side"** to toggle which side of the axis is preserved; the preview updates instantly.
 
-### 5. 使用此结果
-点击 **"使用此结果 →"** 按钮，将右侧处理后图像设为新的左侧源图像，可以反复叠加镜像。
+### 5. Use This Result
+Click **"Use This Result →"** to set the processed image on the right as the new source on the left — allowing repeated stacked mirror effects.
 
-### 6. 导出
-- **静态图**：点击 **"下载 PNG"** 导出当前结果
-- **GIF**：点击 **"下载 GIF"** 导出处理后的动态 GIF
-- GIF 支持勾选 **"随机帧顺序"** 以打乱动画帧
+### 6. Export
+- **Static Image**: Click **"Download PNG"** to export the current result
+- **GIF**: Click **"Download GIF"** to export the processed animation
+- For GIFs, check **"Random Frame Order"** to shuffle animation frames
 
-## 项目结构
+## Project Structure
 
 ```
 axis-mirror-tool/
-├── index.html       # 页面结构
-├── styles.css       # 样式（响应式 + 暗色模式）
-├── app.js           # 主逻辑（UI 交互、画布渲染、事件处理）
-├── mirror.js        # 核心镜像算法（像素反射 + 双线性插值）
-├── gif-handler.js   # GIF 解码/编码、逐帧处理、洗牌
-├── i18n.js          # 国际化（中英文自动切换）
-└── README.md        # 本文件
+├── index.html         # Page structure
+├── styles.css         # Responsive styles + dark mode
+├── app.js             # Main logic (UI, canvas, events)
+├── mirror.js          # Core mirror algorithm (pixel reflection + bilinear interpolation)
+├── gif-handler.js     # GIF decode/encode, per-frame processing, shuffling
+├── i18n.js            # i18n (auto-switch Chinese/English)
+├── README.md          # This file (English)
+├── README-cn.md       # Chinese documentation
+└── .gitignore         # Git ignore rules
 ```
 
-## 技术实现
+## Technical Details
 
-### 镜像算法 (`mirror.js`)
-- 由两个点 (P1, P2) 定义一条无限直线作为对称轴
-- 使用叉积计算像素点到直线的有符号距离，判断保留/丢弃侧
-- 丢弃侧像素通过投影到直线再对称的方式计算反射点坐标
-- 采用双线性插值从源图采样，保证亚像素精度和平滑边缘
+### Mirror Algorithm (`mirror.js`)
+- An infinite straight line is defined by two points (P1, P2)
+- Uses cross product to compute signed distance from a pixel to the line, determining which side to keep
+- Pixels on the discarded side are reflected by projecting onto the line and mirroring across it
+- Bilinear interpolation samples from the source for sub-pixel accuracy and smooth edges
 
-### GIF 处理 (`gif-handler.js`)
-- 使用 [gifuct-js](https://github.com/matt-way/gifuct-js) 解码 GIF
-- 正确处理 disposal type（帧合成与背景恢复）
-- 对每一帧独立应用镜像变换
-- 使用 [gif.js](https://github.com/jnordberg/gif.js) 重新编码导出
+### GIF Processing (`gif-handler.js`)
+- Uses [gifuct-js](https://github.com/matt-way/gifuct-js) to decode GIFs
+- Correctly handles disposal types (frame compositing and background restoration)
+- Applies the mirror transform independently to each frame
+- Uses [gif.js](https://github.com/jnordberg/gif.js) for re-encoding and export
 
-### 多语言 (`i18n.js`)
-- 根据 `navigator.language` 自动判断语言
-- 所有界面文本通过 `getText(key)` 统一获取
-- 监听 `languagechange` 事件实时切换
+### i18n (`i18n.js`)
+- Language detection based on `navigator.language`
+- All UI texts fetched via `getText(key)`
+- Listens for `languagechange` events for live switching
 
-### 响应式设计 (`styles.css`)
-- CSS Flexbox 布局 + Media Queries
-- 桌面 ≥768px：左右并排
-- 手机 <768px：上下堆叠
-- 移动端按钮最小 44×44px 确保可点击
+### Responsive Design (`styles.css`)
+- CSS Flexbox layout + Media Queries
+- Desktop ≥768px: side-by-side panels
+- Mobile <768px: stacked vertically
+- Touch targets minimum 44×44px for usability
 
-## 浏览器兼容
+## Browser Compatibility
 
-- Chrome / Edge (最新版)
-- Firefox (最新版)
-- Safari / iOS Safari (最新版)
+- Chrome / Edge (latest)
+- Firefox (latest)
+- Safari / iOS Safari (latest)
 
-## 许可
+## License
 
 MIT License
