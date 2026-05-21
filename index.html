@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="description" content="Axis Mirror Tool — 基于自定义对称轴的图像镜像工具">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <title data-i18n="appTitle">Axis Mirror Tool</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="light-mode">
+
+<div class="app-container">
+  <!-- ===== 顶部栏 ===== -->
+  <header class="app-header">
+    <h1 id="app-title" data-i18n="appTitle">Axis Mirror Tool</h1>
+    <div class="header-actions">
+      <div class="upload-area" id="upload-area">
+        <span class="upload-hint" data-i18n="uploadHint">Click or drag & drop image here</span>
+        <span class="file-info" id="file-info"></span>
+        <input type="file" id="file-input" accept="image/png,image/jpeg,image/gif,image/webp" capture="environment">
+      </div>
+      <button class="btn btn-icon btn-secondary" id="btn-dark-mode" data-i18n="darkMode">🌙 Dark Mode</button>
+    </div>
+  </header>
+
+  <!-- ===== 主内容区 ===== -->
+  <div class="main-content">
+    <!-- 左侧面板：源图像 -->
+    <div class="panel" id="left-panel">
+      <div class="panel-label">
+        <span data-i18n="sourcePanel">Source Image</span>
+        <span class="gif-info" id="gif-info"></span>
+      </div>
+      <div class="panel-content">
+        <canvas id="left-canvas"></canvas>
+      </div>
+    </div>
+
+    <!-- 右侧面板：预览结果 -->
+    <div class="panel" id="right-panel">
+      <div class="panel-label">
+        <span data-i18n="resultPanel">Preview Result</span>
+      </div>
+      <div class="panel-content">
+        <canvas id="right-canvas"></canvas>
+        <!-- 面板底部叠加信息 -->
+        <div class="panel-overlay">
+          <span class="coords-display" id="coords-display"></span>
+          <span class="keep-side-display" id="keep-side-display"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 底部控制栏 ===== -->
+  <div class="bottom-bar" id="controls">
+    <!-- 交换镜像侧 -->
+    <div class="control-group">
+      <button class="btn btn-secondary" id="btn-swap-side" data-i18n="swapSide">Swap Mirror Side</button>
+    </div>
+
+    <div class="separator"></div>
+
+    <!-- 使用此结果 -->
+    <div class="control-group">
+      <button class="btn btn-primary" id="btn-use-result" data-i18n="useResult" disabled>Use This Result →</button>
+    </div>
+
+    <div class="separator"></div>
+
+    <!-- 随机帧顺序（仅 GIF） -->
+    <div class="control-group" style="display:none;">
+      <input type="checkbox" id="chk-random-order">
+      <label for="chk-random-order" id="lbl-random-order" data-i18n="randomOrder">Random Frame Order</label>
+    </div>
+
+    <div class="separator" id="sep-random" style="display:none;"></div>
+
+    <!-- 下载按钮 -->
+    <div class="control-group">
+      <button class="btn btn-secondary" id="btn-download-png" data-i18n="downloadPNG" disabled>Download PNG</button>
+      <button class="btn btn-secondary" id="btn-download-gif" data-i18n="downloadGIF" style="display:none;" disabled>Download GIF</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 加载覆盖层 ===== -->
+<div class="loading-overlay" id="loading-overlay">
+  <div class="loading-spinner"></div>
+  <span class="loading-text" id="loading-text" data-i18n="processing">Processing...</span>
+</div>
+
+<!-- ===== 脚本 ===== -->
+<!-- 第三方库：GIF 解码 -->
+<script src="https://unpkg.com/gifuct-js@2.1.2/dist/gifuct-js.js"></script>
+<!-- 第三方库：GIF 编码 -->
+<script src="https://unpkg.com/gif.js@0.2.0/dist/gif.js"></script>
+
+<!-- 应用脚本（加载顺序：i18n → mirror → gif-handler → app） -->
+<script src="i18n.js"></script>
+<script src="mirror.js"></script>
+<script src="gif-handler.js"></script>
+<script src="app.js"></script>
+
+</body>
+</html>

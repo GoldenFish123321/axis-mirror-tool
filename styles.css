@@ -1,0 +1,522 @@
+/* =============================================
+   styles.css — 轴镜像工具样式
+   响应式布局：桌面并排 / 手机堆叠
+   暗色/亮色模式支持
+   ============================================= */
+
+/* ---------- CSS 变量 ---------- */
+:root {
+  --bg-primary: #f5f7fa;
+  --bg-secondary: #ffffff;
+  --bg-panel: #ffffff;
+  --bg-canvas: #e8ecf1;
+  --bg-overlay: rgba(0,0,0,0.5);
+  --text-primary: #2c3e50;
+  --text-secondary: #7f8c8d;
+  --text-muted: #b0b8c1;
+  --border-color: #dcdde1;
+  --shadow: 0 2px 12px rgba(0,0,0,0.08);
+  --shadow-hover: 0 4px 20px rgba(0,0,0,0.12);
+  --accent: #3498db;
+  --accent-hover: #2980b9;
+  --danger: #e74c3c;
+  --success: #2ecc71;
+  --warning: #f39c12;
+  --control-point-a: #ff6b6b;
+  --control-point-b: #4ecdc4;
+  --axis-line: rgba(255, 200, 50, 0.7);
+  --upload-border: #3498db;
+  --upload-bg: rgba(52, 152, 219, 0.05);
+  --upload-hover-bg: rgba(52, 152, 219, 0.12);
+  --btn-bg: #3498db;
+  --btn-text: #ffffff;
+  --btn-hover: #2980b9;
+  --btn-secondary-bg: #ecf0f1;
+  --btn-secondary-text: #2c3e50;
+  --panel-label-bg: rgba(0,0,0,0.5);
+  --panel-label-text: #ffffff;
+  --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+/* 暗色模式 */
+.dark-mode {
+  --bg-primary: #1a1a2e;
+  --bg-secondary: #16213e;
+  --bg-panel: #1e2a47;
+  --bg-canvas: #0f1a2e;
+  --bg-overlay: rgba(0,0,0,0.7);
+  --text-primary: #e8e8e8;
+  --text-secondary: #a0aab4;
+  --text-muted: #5a6470;
+  --border-color: #2a3a5c;
+  --shadow: 0 2px 12px rgba(0,0,0,0.3);
+  --shadow-hover: 0 4px 20px rgba(0,0,0,0.4);
+  --accent: #5dade2;
+  --accent-hover: #3498db;
+  --upload-border: #5dade2;
+  --upload-bg: rgba(93, 173, 226, 0.08);
+  --upload-hover-bg: rgba(93, 173, 226, 0.15);
+  --btn-bg: #5dade2;
+  --btn-text: #1a1a2e;
+  --btn-hover: #3498db;
+  --btn-secondary-bg: #2a3a5c;
+  --btn-secondary-text: #e8e8e8;
+  --panel-label-bg: rgba(0,0,0,0.6);
+}
+
+/* ---------- 基础重置 ---------- */
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family: var(--font-family);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+/* ---------- 布局 ---------- */
+.app-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh;
+  max-width: 100vw;
+  overflow: hidden;
+}
+
+/* 顶部栏 */
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-height: 48px;
+}
+
+.app-header h1 {
+  font-size: 18px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* 主内容区 */
+.main-content {
+  display: flex;
+  flex-direction: row;
+  flex: 1;
+  overflow: hidden;
+  gap: 0;
+}
+
+/* 面板 */
+.panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+  min-width: 0;
+}
+
+.panel + .panel {
+  border-left: 1px solid var(--border-color);
+}
+
+.panel-label {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: 6px 12px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.panel-content {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  background: var(--bg-canvas);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.panel-content canvas {
+  display: block;
+  /* 宽度/高度由 JS 动态设置 */
+}
+
+/* 面板信息叠加 */
+.panel-overlay {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  right: 8px;
+  display: flex;
+  justify-content: space-between;
+  pointer-events: none;
+  font-size: 11px;
+  color: var(--text-muted);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+}
+
+.coords-display {
+  background: var(--panel-label-bg);
+  color: var(--panel-label-text);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  pointer-events: none;
+}
+
+.keep-side-display {
+  background: var(--panel-label-bg);
+  color: var(--panel-label-text);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  pointer-events: none;
+}
+
+/* ---------- 底部控制栏 ---------- */
+.bottom-bar {
+  flex-shrink: 0;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border-color);
+  padding: 10px 16px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.bottom-bar .control-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.bottom-bar .control-group label {
+  font-size: 13px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+
+/* ---------- 按钮通用样式 ---------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  min-height: 36px;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+  font-family: inherit;
+}
+
+.btn:active {
+  transform: scale(0.97);
+}
+
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-primary {
+  background: var(--btn-bg);
+  color: var(--btn-text);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--btn-hover);
+}
+
+.btn-secondary {
+  background: var(--btn-secondary-bg);
+  color: var(--btn-secondary-text);
+  border: 1px solid var(--border-color);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  filter: brightness(1.05);
+}
+
+.btn-icon {
+  padding: 8px;
+  min-width: 36px;
+  min-height: 36px;
+  font-size: 16px;
+}
+
+/* ---------- 上传区域 ---------- */
+.upload-area {
+  position: relative;
+  padding: 8px 16px;
+  cursor: pointer;
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 2px dashed var(--upload-border);
+  border-radius: 8px;
+  background: var(--upload-bg);
+  transition: all 0.2s;
+  touch-action: manipulation;
+}
+
+.upload-area:hover,
+.upload-area.drag-over {
+  background: var(--upload-hover-bg);
+  border-color: var(--accent-hover);
+}
+
+.upload-area.drag-over {
+  transform: scale(1.02);
+}
+
+.upload-hint {
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.file-info {
+  font-size: 12px;
+  color: var(--success);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: none;
+}
+
+#file-input {
+  display: none;
+}
+
+/* ---------- 复选框 ---------- */
+.checkbox-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.checkbox-group input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: var(--accent);
+}
+
+/* ---------- GIF 信息 ---------- */
+.gif-info {
+  font-size: 12px;
+  color: var(--text-muted);
+  padding: 2px 6px;
+  display: none;
+}
+
+/* ---------- 加载覆盖层 ---------- */
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--bg-overlay);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid var(--border-color);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-text {
+  color: #fff;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+/* ---------- 分隔线 ---------- */
+.separator {
+  width: 1px;
+  height: 24px;
+  background: var(--border-color);
+  flex-shrink: 0;
+}
+
+/* ---------- 响应式：手机竖屏 ---------- */
+@media (max-width: 768px) {
+  .app-header h1 {
+    font-size: 15px;
+  }
+
+  .app-header {
+    padding: 6px 10px;
+  }
+
+  .main-content {
+    flex-direction: column;
+  }
+
+  .panel {
+    flex: 1;
+    min-height: 0;
+  }
+
+  /* 在手机上，两个面板各占一半高度 */
+  .panel {
+    height: 50%;
+  }
+
+  .panel + .panel {
+    border-left: none;
+    border-top: 1px solid var(--border-color);
+  }
+
+  .bottom-bar {
+    padding: 8px 10px;
+    gap: 6px;
+  }
+
+  .btn {
+    padding: 8px 10px;
+    font-size: 12px;
+    min-height: 44px; /* 移动端点击友好 */
+    min-width: 44px;
+  }
+
+  .upload-area {
+    padding: 6px 10px;
+    min-height: 44px;
+  }
+
+  .upload-hint {
+    font-size: 11px;
+  }
+
+  .separator {
+    display: none;
+  }
+
+  .panel-label {
+    font-size: 10px;
+    padding: 4px 8px;
+  }
+
+  .coords-display {
+    font-size: 9px;
+  }
+
+  .keep-side-display {
+    font-size: 9px;
+  }
+
+  /* 控制组紧凑显示 */
+  .bottom-bar .control-group {
+    flex-wrap: nowrap;
+  }
+}
+
+/* ---------- 超小屏 ---------- */
+@media (max-width: 400px) {
+  .btn {
+    padding: 6px 8px;
+    font-size: 11px;
+    min-height: 36px;
+  }
+
+  .app-header h1 {
+    font-size: 13px;
+  }
+}
+
+/* ---------- 桌面横屏优化 ---------- */
+@media (min-width: 1024px) {
+  .app-header {
+    padding: 10px 24px;
+  }
+
+  .bottom-bar {
+    padding: 12px 24px;
+    gap: 12px;
+  }
+
+  .btn {
+    padding: 10px 18px;
+    font-size: 14px;
+  }
+}
+
+/* ---------- 滚动条 ---------- */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
