@@ -19,20 +19,75 @@
 async function parseGIFToFrames(arrayBuffer) {
   // 检查 gifuct-js 是否已加载（暴露 parseGIF 和 decompressFrames 全局函数）
   if (typeof parseGIF === 'undefined') {
-    throw new Error('gifuct-js library not loaded');
+    const err = new Error('gifuct-js library not loaded: parseGIF() is undefined. Check that https://unpkg.com/gifuct-js is accessible.');
+    err.code = 'LIB_NOT_LOADED';
+    throw err;
+  }
+
+  // 验证输入数据
+  if (!arrayBuffer || arrayBuffer.byteLength === 0) {
+    const err = new Error('GIF file is empty (0 bytes)');
+    err.code = 'EMPTY_FILE';
+    throw err;
+  }
+
+  // 检查 GIF 头标记
+  const header = new Uint8Array(arrayBuffer, 0, 3);
+  const headerStr = String.fromCharCode(header[0], header[1], header[2]);
+  if (headerStr !== 'GIF') {
+    const err = new Error(`Invalid GIF header: expected "GIF" at bytes 0-2, got "${headerStr}"`);
+    err.code = 'BAD_HEADER';
+    throw err;
   }
 
   // parseGIF 和 decompressFrames 是 gifuct-js 暴露的全局函数
-  const gif = parseGIF(arrayBuffer);
-  const parsedFrames = decompressFrames(gif, true);
-
-  if (!parsedFrames || parsedFrames.length === 0) {
-    throw new Error('No frames found in GIF');
+  let gif;
+  try {
+    gif = parseGIF(arrayBuffer);
+  } catch (parseErr) {
+    const err = new Error(`GIF parsing failed at binary level: ${parseErr.message || parseErr}`);
+    err.code = 'PARSE_FAILED';
+    err.cause = parseErr;
+    throw err;
   }
 
-  // 获取 GIF 的完整尺寸
+  if (!gif.lsd) {
+    const err = new Error('GIF parse result missing Logical Screen Descriptor (lsd) — file may be corrupt');
+    err.code = 'NO_LSD';
+    throw err;
+  }
+
   const width = gif.lsd.width;
   const height = gif.lsd.height;
+  if (!width || !height || width <= 0 || height <= 0 || width > 8000 || height > 8000) {
+    const err = new Error(`GIF has invalid dimensions: ${width}x${height}`);
+    err.code = 'BAD_DIMENSIONS';
+    throw err;
+  }
+
+  let parsedFrames;
+  try {
+    parsedFrames = decompressFrames(gif, true);
+  } catch (decompressErr) {
+    const err = new Error(`GIF frame decompression failed: ${decompressErr.message || decompressErr}`);
+    err.code = 'DECOMPRESS_FAILED';
+    err.cause = decompressErr;
+    throw err;
+  }
+
+  if (!parsedFrames || parsedFrames.length === 0) {
+    const err = new Error('No frames found in GIF — file may contain a single-frame static image, or be corrupt');
+    err.code = 'NO_FRAMES';
+    throw err;
+  }
+
+  if (parsedFrames.length > 500) {
+    const err = new Error(`GIF has too many frames (${parsedFrames.length}). Maximum supported: 500 frames.`);
+    err.code = 'TOO_MANY_FRAMES';
+    throw err;
+  }
+
+  console.log(`[GIF] Parsed ${parsedFrames.length} frames, ${width}x${height}`);
 
   // 构建完整帧（处理帧合成和 disposal）
   const fullFrames = compositeAllFrames(parsedFrames, width, height);
@@ -60,6 +115,20 @@ function compositeAllFrames(parsedFrames, fullWidth, fullHeight) {
 
   for (let i = 0; i < parsedFrames.length; i++) {
     const frame = parsedFrames[i];
+
+    // 验证帧结构
+    if (!frame.dims) {
+      const err = new Error(`Frame ${i} is missing dims (dimensions) — GIF may be corrupt`);
+      err.code = 'FRAME_NO_DIMS';
+      err.frameIndex = i;
+      throw err;
+    }
+    if (!frame.pixels || frame.pixels.length === 0) {
+      const err = new Error(`Frame ${i} has no pixel data (${fullWidth}x${fullHeight})`);
+      err.code = 'FRAME_NO_PIXELS';
+      err.frameIndex = i;
+      throw err;
+    }
 
     // --- 处理上一帧的 disposal ---
     if (i > 0) {
@@ -150,7 +219,21 @@ function encodeGIF(frames, quality = 10) {
   return new Promise((resolve, reject) => {
     // gif.js 在全局暴露 GIF 构造函数
     if (typeof GIF === 'undefined' || typeof GIF !== 'function') {
-      reject(new Error('gif.js library not loaded'));
+      const err = new Error('gif.js library not loaded: GIF constructor is undefined. Check that https://unpkg.com/gif.js is accessible.');
+      err.code = 'ENC_LIB_NOT_LOADED';
+      reject(err);
+      return;
+    }
+
+    if (!frames || frames.length === 0) {
+      reject(new Error('Cannot encode GIF: no frames provided (0 frames)'));
+      return;
+    }
+
+    const w = frames[0].canvas.width;
+    const h = frames[0].canvas.height;
+    if (!w || !h || w <= 0 || h <= 0) {
+      reject(new Error(`Cannot encode GIF: frame 0 has invalid dimensions ${w}x${h}`));
       return;
     }
 
@@ -159,8 +242,8 @@ function encodeGIF(frames, quality = 10) {
     const encoder = new GIF({
       workers: 0,
       quality: quality,
-      width: frames[0].canvas.width,
-      height: frames[0].canvas.height,
+      width: w,
+      height: h,
       background: '#00000000' // 透明背景
     });
 

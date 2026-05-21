@@ -459,8 +459,10 @@ async function recomputeMirror() {
       AppState.resultCanvas = null;
     }
   } catch (err) {
-    console.error('Recompute error:', err);
-    alert(getText('errorLoad'));
+    console.error('[Mirror] Recompute error:', err);
+    const detail = err.code ? ` (${err.code})` : '';
+    const cause = err.cause ? `\n${err.cause.message || err.cause}` : '';
+    alert(`${getText('errorLoad')}${detail}\n${err.message}${cause}`);
   } finally {
     AppState.isProcessing = false;
     showLoading(false);
@@ -535,8 +537,11 @@ function handleFileUpload(file) {
         await recomputeMirror();
         updateFileInfo(file.name);
       } catch (err) {
-        console.error('GIF parse error:', err);
-        alert(getText('errorGIF'));
+        console.error('[GIF] Parse error:', err);
+        // 显示详细错误信息
+        const detail = err.code ? ` (${err.code})` : '';
+        const cause = err.cause ? `\n${err.cause.message || err.cause}` : '';
+        alert(`${getText('errorGIF')}${detail}\n${err.message}${cause}`);
         showLoading(false);
       }
     };
@@ -691,7 +696,10 @@ function onPointerMove(e, canvas) {
     // 更新坐标显示
     updateCoordsDisplay();
 
-    // 实时预览（防抖）
+    // ★ 立即重绘轴线（不等待镜像计算），让拖动手感流畅
+    renderAll();
+
+    // 后台防抖计算镜像结果（慢操作）
     debouncedRecompute();
 
     if (e.touches) {
@@ -856,8 +864,10 @@ async function downloadGIF() {
     document.body.removeChild(link);
     setTimeout(() => URL.revokeObjectURL(url), 10000);
   } catch (err) {
-    console.error('GIF encode error:', err);
-    alert(getText('errorGIF'));
+    console.error('[GIF] Encode error:', err);
+    const detail = err.code ? ` (${err.code})` : '';
+    const cause = err.cause ? `\n${err.cause.message || err.cause}` : '';
+    alert(`${getText('errorGIF')}${detail}\n${err.message}${cause}`);
   } finally {
     showLoading(false);
   }

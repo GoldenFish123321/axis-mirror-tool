@@ -98,7 +98,9 @@ function applyMirror(sourceCanvas, p1, p2, keepPositiveSide) {
   const resultCanvas = document.createElement('canvas');
   resultCanvas.width = width;
   resultCanvas.height = height;
-  const resultCtx = resultCanvas.getContext('2d');
+  const resultCtx = resultCanvas.getContext('2d', { alpha: true });
+  // ★ 明确清空为全透明，确保 PNG 导出时背景透明
+  resultCtx.clearRect(0, 0, width, height);
   resultCtx.putImageData(dstData, 0, 0);
 
   return resultCanvas;
