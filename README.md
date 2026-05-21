@@ -18,6 +18,10 @@ An online image mirror tool based on **arbitrary custom symmetry axes**. Support
 
 ## Usage
 
+### Online Demo
+
+You can try it live at: [https://goldenfish123321.github.io/axis-mirror-tool/](https://goldenfish123321.github.io/axis-mirror-tool/)
+
 ### 1. Open the Page
 Open `index.html` directly in a browser (no build tools or server required, though some browsers need an HTTP server to access local files).
 

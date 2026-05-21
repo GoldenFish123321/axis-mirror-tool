@@ -19,6 +19,10 @@
 
 ## 使用方法
 
+### 在线体验
+
+[https://goldenfish123321.github.io/axis-mirror-tool/](https://goldenfish123321.github.io/axis-mirror-tool/)
+
 ### 1. 打开页面
 直接用浏览器打开 `index.html`（无需任何构建工具或服务器，部分浏览器可能需要通过 HTTP 服务访问才能读取本地文件）。
 
