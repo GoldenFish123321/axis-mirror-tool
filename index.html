@@ -71,12 +71,18 @@
     <div class="separator"></div>
 
     <!-- 随机帧顺序（仅 GIF） -->
-    <div class="control-group" style="display:none;">
+    <div class="control-group gif-only" style="display:none;">
       <input type="checkbox" id="chk-random-order">
       <label for="chk-random-order" id="lbl-random-order" data-i18n="randomOrder">Random Frame Order</label>
     </div>
 
-    <div class="separator" id="sep-random" style="display:none;"></div>
+    <!-- 启用镜像（仅 GIF） -->
+    <div class="control-group gif-only" style="display:none;">
+      <input type="checkbox" id="chk-enable-mirror" checked>
+      <label for="chk-enable-mirror" id="lbl-enable-mirror" data-i18n="enableMirror">Enable Mirror</label>
+    </div>
+
+    <div class="separator gif-only" style="display:none;"></div>
 
     <!-- 下载按钮 -->
     <div class="control-group">

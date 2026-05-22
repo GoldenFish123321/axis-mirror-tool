@@ -23,6 +23,7 @@ const AppState = {
   axisP2: { x: 0, y: 0 },
   keepPositiveSide: true,
   randomOrder: false,
+  enableMirror: true,
 
   // 图像尺寸
   imgWidth: 0,
@@ -64,6 +65,8 @@ function cacheDOM() {
   DOM.btnDownloadGIF = document.getElementById('btn-download-gif');
   DOM.chkRandomOrder = document.getElementById('chk-random-order');
   DOM.lblRandomOrder = document.getElementById('lbl-random-order');
+  DOM.chkEnableMirror = document.getElementById('chk-enable-mirror');
+  DOM.lblEnableMirror = document.getElementById('lbl-enable-mirror');
   DOM.btnDarkMode = document.getElementById('btn-dark-mode');
   DOM.loadingOverlay = document.getElementById('loading-overlay');
   DOM.loadingText = document.getElementById('loading-text');
@@ -443,12 +446,22 @@ async function recomputeMirror() {
       AppState.resultGifFrames = null;
     } else if (AppState.sourceType === 'gif') {
       // GIF
-      let frames = applyMirrorToGIF(
-        AppState.sourceGifFrames,
-        AppState.axisP1,
-        AppState.axisP2,
-        AppState.keepPositiveSide
-      );
+      let frames;
+
+      if (AppState.enableMirror) {
+        frames = applyMirrorToGIF(
+          AppState.sourceGifFrames,
+          AppState.axisP1,
+          AppState.axisP2,
+          AppState.keepPositiveSide
+        );
+      } else {
+        // 不镜像：深拷贝原始帧（不做镜像变换，但保留随机帧顺序能力）
+        frames = AppState.sourceGifFrames.map(f => ({
+          canvas: cloneCanvas(f.canvas),
+          delay: f.delay
+        }));
+      }
 
       if (AppState.randomOrder) {
         frames = shuffleFrames(frames);
@@ -530,9 +543,14 @@ function handleFileUpload(file) {
           DOM.gifInfo.style.display = 'block';
         }
 
-        // 显示随机顺序选项和 GIF 下载按钮
-        DOM.chkRandomOrder.closest('.control-group').style.display = 'flex';
+        // 显示 GIF 专用 UI
+        document.querySelectorAll('.gif-only').forEach(el => { el.style.display = 'flex'; });
+        document.querySelectorAll('.separator.gif-only').forEach(el => { el.style.display = 'block'; });
         DOM.btnDownloadGIF.style.display = 'inline-flex';
+
+        // 同步复选框状态
+        AppState.randomOrder = DOM.chkRandomOrder.checked;
+        AppState.enableMirror = DOM.chkEnableMirror.checked;
 
         await recomputeMirror();
         updateFileInfo(file.name);
@@ -566,7 +584,7 @@ function handleFileUpload(file) {
         initAxisPosition();
 
         // 隐藏 GIF 相关 UI
-        DOM.chkRandomOrder.closest('.control-group').style.display = 'none';
+        document.querySelectorAll('.gif-only').forEach(el => { el.style.display = 'none'; });
         DOM.btnDownloadGIF.style.display = 'none';
         DOM.gifInfo.style.display = 'none';
 
@@ -854,7 +872,7 @@ async function downloadGIF() {
   showLoading(true);
 
   try {
-    const blob = await encodeGIF(AppState.resultGifFrames);
+    const blob = await encodeCompressedGIF(AppState.resultGifFrames);
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.download = 'mirror-result.gif';
@@ -1037,6 +1055,15 @@ async function initApp() {
   if (DOM.chkRandomOrder) {
     DOM.chkRandomOrder.addEventListener('change', () => {
       AppState.randomOrder = DOM.chkRandomOrder.checked;
+      if (AppState.sourceType === 'gif') {
+        recomputeMirror();
+      }
+    });
+  }
+
+  if (DOM.chkEnableMirror) {
+    DOM.chkEnableMirror.addEventListener('change', () => {
+      AppState.enableMirror = DOM.chkEnableMirror.checked;
       if (AppState.sourceType === 'gif') {
         recomputeMirror();
       }

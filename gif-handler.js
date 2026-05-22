@@ -168,6 +168,67 @@ function shuffleFrames(frames) {
 }
 
 /**
+ * 压缩并编码 GIF：自动缩放到合理尺寸，最低质量，确保导出文件小于 5MB
+ *
+ * 压缩策略：
+ * 1. 最大尺寸：限制最长边 ≤ 600px（等比缩放）
+ * 2. 最低质量：quality=20（gif.js 中最小的文件尺寸）
+ * 3. 帧采样：超过 50 帧时自动降采样
+ *
+ * @param {Array<{canvas: HTMLCanvasElement, delay: number}>} frames - 帧数组
+ * @param {number} [maxDimension=600] - 最长边最大像素
+ * @param {number} [maxFrames=50] - 最大帧数
+ * @returns {Promise<Blob>} 压缩后的 GIF Blob
+ */
+function encodeCompressedGIF(frames, maxDimension, maxFrames) {
+  maxDimension = maxDimension || 600;
+  maxFrames = maxFrames || 50;
+
+  if (!frames || frames.length === 0) {
+    return Promise.reject(new Error('No frames to encode'));
+  }
+
+  // 1. 帧采样：超过 maxFrames 帧时均匀采样
+  let processedFrames = frames;
+  if (frames.length > maxFrames) {
+    const step = Math.ceil(frames.length / maxFrames);
+    processedFrames = [];
+    for (let i = 0; i < frames.length; i += step) {
+      processedFrames.push(frames[i]);
+    }
+  }
+
+  // 2. 计算目标尺寸（最长边 ≤ maxDimension）
+  const origW = processedFrames[0].canvas.width;
+  const origH = processedFrames[0].canvas.height;
+  let scale = 1;
+  if (Math.max(origW, origH) > maxDimension) {
+    scale = maxDimension / Math.max(origW, origH);
+  }
+  const targetW = Math.round(origW * scale);
+  const targetH = Math.round(origH * scale);
+
+  // 3. 缩放所有帧到目标尺寸
+  if (scale < 1) {
+    const scaledFrames = [];
+    for (const frame of processedFrames) {
+      const c = document.createElement('canvas');
+      c.width = targetW;
+      c.height = targetH;
+      const ctx = c.getContext('2d');
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(frame.canvas, 0, 0, targetW, targetH);
+      scaledFrames.push({ canvas: c, delay: frame.delay });
+    }
+    processedFrames = scaledFrames;
+  }
+
+  // 4. 使用最低质量编码
+  return encodeGIF(processedFrames, 20 /* quality=20 = 最小文件 */);
+}
+
+/**
  * 将帧序列编码为 GIF Blob
  *
  * @param {Array<{canvas: HTMLCanvasElement, delay: number}>} frames - 帧数组
