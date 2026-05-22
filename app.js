@@ -24,6 +24,9 @@ const AppState = {
   keepPositiveSide: true,
   randomOrder: false,
   enableMirror: true,
+  // 背景颜色与透明度（0=透明，100=完全不透明）
+  bgColor: '#000000',
+  bgOpacity: 0,
 
   // 图像尺寸
   imgWidth: 0,
@@ -67,6 +70,9 @@ function cacheDOM() {
   DOM.lblRandomOrder = document.getElementById('lbl-random-order');
   DOM.chkEnableMirror = document.getElementById('chk-enable-mirror');
   DOM.lblEnableMirror = document.getElementById('lbl-enable-mirror');
+  DOM.bgColorPicker = document.getElementById('bg-color-picker');
+  DOM.bgOpacitySlider = document.getElementById('bg-opacity-slider');
+  DOM.bgOpacityValue = document.getElementById('bg-opacity-value');
   DOM.btnDarkMode = document.getElementById('btn-dark-mode');
   DOM.loadingOverlay = document.getElementById('loading-overlay');
   DOM.loadingText = document.getElementById('loading-text');
@@ -416,6 +422,24 @@ function stopGIFAnimation() {
 // ======================== 镜像计算 ========================
 
 /**
+ * 将当前 UI 中的背景色和透明度转为 RGBA 对象
+ * 当透明度为 0 时返回 null（透明背景）
+ */
+function getBgColorRgba() {
+  const opacity = AppState.bgOpacity;
+  if (opacity <= 0) return null;
+
+  // 解析十六进制颜色 #RRGGBB
+  const hex = AppState.bgColor.replace('#', '');
+  const r = parseInt(hex.substring(0, 2), 16);
+  const g = parseInt(hex.substring(2, 4), 16);
+  const b = parseInt(hex.substring(4, 6), 16);
+  const a = Math.round(opacity / 100 * 255);
+
+  return { r, g, b, a };
+}
+
+/**
  * 重新计算镜像结果
  */
 async function recomputeMirror() {
@@ -439,7 +463,8 @@ async function recomputeMirror() {
         sourceCanvas,
         AppState.axisP1,
         AppState.axisP2,
-        AppState.keepPositiveSide
+        AppState.keepPositiveSide,
+        getBgColorRgba() // 背景色参数
       );
       AppState.resultCanvas = result;
       AppState.resultType = 'static';
@@ -453,7 +478,8 @@ async function recomputeMirror() {
           AppState.sourceGifFrames,
           AppState.axisP1,
           AppState.axisP2,
-          AppState.keepPositiveSide
+          AppState.keepPositiveSide,
+          getBgColorRgba() // 背景色参数
         );
       } else {
         // 不镜像：深拷贝原始帧（不做镜像变换，但保留随机帧顺序能力）
@@ -548,6 +574,10 @@ function handleFileUpload(file) {
         document.querySelectorAll('.separator.gif-only').forEach(el => { el.style.display = 'block'; });
         DOM.btnDownloadGIF.style.display = 'inline-flex';
 
+        // 显示背景色控件
+        document.querySelectorAll('.bg-color-group').forEach(el => { el.style.display = 'flex'; });
+        document.getElementById('sep-bg').style.display = 'block';
+
         // 同步复选框状态
         AppState.randomOrder = DOM.chkRandomOrder.checked;
         AppState.enableMirror = DOM.chkEnableMirror.checked;
@@ -587,6 +617,10 @@ function handleFileUpload(file) {
         document.querySelectorAll('.gif-only').forEach(el => { el.style.display = 'none'; });
         DOM.btnDownloadGIF.style.display = 'none';
         DOM.gifInfo.style.display = 'none';
+
+        // 显示背景色控件
+        document.querySelectorAll('.bg-color-group').forEach(el => { el.style.display = 'flex'; });
+        document.getElementById('sep-bg').style.display = 'block';
 
         await recomputeMirror();
         updateFileInfo(file.name);
@@ -1067,6 +1101,24 @@ async function initApp() {
       if (AppState.sourceType === 'gif') {
         recomputeMirror();
       }
+    });
+  }
+
+  // --- 背景色控件 ---
+  if (DOM.bgColorPicker) {
+    DOM.bgColorPicker.addEventListener('input', () => {
+      AppState.bgColor = DOM.bgColorPicker.value;
+      debouncedRecompute();
+    });
+  }
+
+  if (DOM.bgOpacitySlider) {
+    DOM.bgOpacitySlider.addEventListener('input', () => {
+      AppState.bgOpacity = parseInt(DOM.bgOpacitySlider.value, 10);
+      if (DOM.bgOpacityValue) {
+        DOM.bgOpacityValue.textContent = AppState.bgOpacity + '%';
+      }
+      debouncedRecompute();
     });
   }
 

@@ -143,11 +143,12 @@ function decodeAllFrames(reader, numFrames, width, height) {
  * @param {object} p1 - 对称轴点1（图像坐标）
  * @param {object} p2 - 对称轴点2（图像坐标）
  * @param {boolean} keepPositiveSide - 保留侧
+ * @param {object|null} [bgColor] - 背景色 {r,g,b,a}，null=透明
  * @returns {Array<{canvas: HTMLCanvasElement, delay: number}>} 处理后的帧
  */
-function applyMirrorToGIF(frames, p1, p2, keepPositiveSide) {
+function applyMirrorToGIF(frames, p1, p2, keepPositiveSide, bgColor) {
   return frames.map(frame => ({
-    canvas: applyMirror(frame.canvas, p1, p2, keepPositiveSide),
+    canvas: applyMirror(frame.canvas, p1, p2, keepPositiveSide, bgColor),
     delay: frame.delay
   }));
 }

@@ -520,3 +520,90 @@ html, body {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--text-muted);
 }
+
+/* ---------- 背景颜色控件 ---------- */
+.bg-color-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bg-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  cursor: default;
+}
+
+#bg-color-picker {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 2px solid var(--border-color);
+  border-radius: 4px;
+  cursor: pointer;
+  background: none;
+  flex-shrink: 0;
+}
+
+#bg-color-picker::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+#bg-color-picker::-webkit-color-swatch {
+  border: none;
+  border-radius: 2px;
+}
+
+.opacity-slider {
+  width: 80px;
+  height: 6px;
+  -webkit-appearance: none;
+  appearance: none;
+  border-radius: 3px;
+  background: var(--border-color);
+  outline: none;
+  cursor: pointer;
+}
+
+.opacity-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid var(--bg-secondary);
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+
+.opacity-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid var(--bg-secondary);
+  cursor: pointer;
+}
+
+.opacity-value {
+  font-size: 11px;
+  font-family: 'Courier New', monospace;
+  color: var(--text-secondary);
+  min-width: 32px;
+  text-align: center;
+}
+
+@media (max-width: 768px) {
+  #bg-color-picker {
+    width: 28px;
+    height: 28px;
+  }
+  .opacity-slider {
+    width: 60px;
+  }
+  .bg-label {
+    font-size: 11px;
+  }
+}

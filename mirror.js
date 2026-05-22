@@ -16,9 +16,10 @@
  * @param {object} p1 - 对称轴上的第一个点 {x, y}（图像坐标）
  * @param {object} p2 - 对称轴上的第二个点 {x, y}（图像坐标）
  * @param {boolean} keepPositiveSide - true=保留法线指向侧，false=保留另一侧
+ * @param {object|null} [bgColor] - 背景色 {r, g, b, a}，为 null 表示透明
  * @returns {HTMLCanvasElement} 变换后的新 Canvas
  */
-function applyMirror(sourceCanvas, p1, p2, keepPositiveSide) {
+function applyMirror(sourceCanvas, p1, p2, keepPositiveSide, bgColor) {
   const width = sourceCanvas.width;
   const height = sourceCanvas.height;
 
@@ -38,8 +39,7 @@ function applyMirror(sourceCanvas, p1, p2, keepPositiveSide) {
 
   // 防止除以零（两点重合时默认水平线）
   if (lineLen2 < 1e-10) {
-    // 退化为水平线（通过 p1）
-    return applyMirror(sourceCanvas, { x: 0, y: p1.y }, { x: width, y: p1.y }, keepPositiveSide);
+    return applyMirror(sourceCanvas, { x: 0, y: p1.y }, { x: width, y: p1.y }, keepPositiveSide, bgColor);
   }
 
   const lineLen = Math.sqrt(lineLen2);
@@ -49,18 +49,24 @@ function applyMirror(sourceCanvas, p1, p2, keepPositiveSide) {
   const ny = dx / lineLen;
 
   // 预计算常量用于快速有符号距离计算
-  // signedDist = ((x-p1.x)*dy - (y-p1.y)*dx) / lineLen
-  // 展开为: (x*dy - y*dx - p1.x*dy + p1.y*dx) / lineLen
   const distA = dy / lineLen;
   const distB = -dx / lineLen;
   const distC = (-p1.x * dy + p1.y * dx) / lineLen;
+
+  // 如果有指定背景色，先用背景色填充整个目标，再覆盖保留侧和反射像素
+  if (bgColor) {
+    // ImageData 初始是全 0（透明黑），直接分块写入背景色效率低
+    // 改为：在循环中，对丢弃侧像素采样后，如果采样点出界则使用 bgColor
+    // 保留侧像素仍然用源图
+    // 这样无需预先填充整图
+  }
 
   // 逐像素处理
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       const dstIdx = (y * width + x) * 4;
 
-      // 计算有符号距离（正数 = 法线指向侧）
+      // 计算有符号距离
       const signedDist = distA * x + distB * y + distC;
 
       // 判断是否在保留侧
@@ -74,18 +80,14 @@ function applyMirror(sourceCanvas, p1, p2, keepPositiveSide) {
         dstPixels[dstIdx + 3] = srcPixels[dstIdx + 3];
       } else {
         // 丢弃侧：反射到保留侧采样
-
-        // 投影标量 t = ((x-p1.x)*dx + (y-p1.y)*dy) / lineLen2
         const t = ((x - p1.x) * dx + (y - p1.y) * dy) / lineLen2;
-        // 直线上最近点 P = p1 + t*(dx, dy)
         const px = p1.x + t * dx;
         const py = p1.y + t * dy;
-        // 反射点 Q' = 2*P - Q
         const refX = 2 * px - x;
         const refY = 2 * py - y;
 
-        // 从源图采样反射点像素（双线性插值）
-        const sampled = sampleBilinear(srcPixels, width, height, refX, refY);
+        // 从源图采样反射点像素（双线性插值），出界时使用 bgColor
+        const sampled = sampleBilinear(srcPixels, width, height, refX, refY, bgColor);
         dstPixels[dstIdx]     = sampled.r;
         dstPixels[dstIdx + 1] = sampled.g;
         dstPixels[dstIdx + 2] = sampled.b;
@@ -99,7 +101,12 @@ function applyMirror(sourceCanvas, p1, p2, keepPositiveSide) {
   resultCanvas.width = width;
   resultCanvas.height = height;
   const resultCtx = resultCanvas.getContext('2d', { alpha: true });
-  // ★ 明确清空为全透明，确保 PNG 导出时背景透明
+
+  if (bgColor && bgColor.a >= 255) {
+    // 完全不透明背景：使用 fillRect 一次性填充比 putImageData 更快
+    // 但 putImageData 已经包含了像素数据，不需要额外填充
+  }
+
   resultCtx.clearRect(0, 0, width, height);
   resultCtx.putImageData(dstData, 0, 0);
 
@@ -116,11 +123,15 @@ function applyMirror(sourceCanvas, p1, p2, keepPositiveSide) {
  * @param {number} height - 图像高度
  * @param {number} x - 采样点 X 坐标（浮点）
  * @param {number} y - 采样点 Y 坐标（浮点）
+ * @param {object|null} [bgColor] - 出界时的背景色 {r, g, b, a}，null 则返回透明
  * @returns {{r, g, b, a}} 插值后的 RGBA 值
  */
-function sampleBilinear(pixels, width, height, x, y) {
-  // 边界检查：如果采样点在图像外，返回透明黑
+function sampleBilinear(pixels, width, height, x, y, bgColor) {
+  // 边界检查：如果采样点在图像外，返回背景色或透明
   if (x < 0 || x >= width || y < 0 || y >= height) {
+    if (bgColor) {
+      return { r: bgColor.r, g: bgColor.g, b: bgColor.b, a: bgColor.a };
+    }
     return { r: 0, g: 0, b: 0, a: 0 };
   }
 
@@ -141,7 +152,6 @@ function sampleBilinear(pixels, width, height, x, y) {
   const idx22 = (y2 * width + x2) * 4;
 
   // 双线性插值
-  // 权重: (1-fx)(1-fy), fx(1-fy), (1-fx)fy, fx*fy
   const w11 = (1 - fx) * (1 - fy);
   const w21 = fx * (1 - fy);
   const w12 = (1 - fx) * fy;
@@ -157,12 +167,6 @@ function sampleBilinear(pixels, width, height, x, y) {
 
 /**
  * 获取关于指定直线对称的反射点坐标
- *
- * @param {number} x - 原始点 X
- * @param {number} y - 原始点 Y
- * @param {object} p1 - 直线上一点 {x, y}
- * @param {object} p2 - 直线上另一点 {x, y}
- * @returns {{x: number, y: number}} 反射点坐标
  */
 function reflectPoint(x, y, p1, p2) {
   const dx = p2.x - p1.x;
@@ -183,13 +187,6 @@ function reflectPoint(x, y, p1, p2) {
 
 /**
  * 计算点到直线的有符号距离
- * 正数表示点在法线指向侧
- *
- * @param {number} x - 点的 X 坐标
- * @param {number} y - 点的 Y 坐标
- * @param {object} p1 - 直线上一点 {x, y}
- * @param {object} p2 - 直线上另一点 {x, y}
- * @returns {number} 有符号距离
  */
 function signedDistance(x, y, p1, p2) {
   const dx = p2.x - p1.x;
