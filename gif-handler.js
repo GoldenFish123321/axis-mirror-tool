@@ -230,8 +230,54 @@ function encodeCompressedGIF(frames, maxDimension, maxFrames) {
     processedFrames = scaledFrames;
   }
 
-  // 4. 使用最低质量编码
-  return encodeGIF(processedFrames, 20 /* quality=20 = 最小文件 */);
+  // 4. 预处理透明像素，确保 chroma key 正确生效
+  processedFrames = prepareFramesForExport(processedFrames);
+
+  // 5. 使用最低质量编码
+  return encodeGIF(processedFrames, 10 /* quality=10，平衡文件大小与透明色保留 */);
+}
+
+/**
+ * 预处理帧画布，确保透明区域在 GIF 编码中正确保留
+ *
+ * gif.js 不支持 alpha 通道，它用 chroma key 方式处理透明：
+ * transparent:'#000000' 告诉编码器将黑色像素标记为透明。
+ * 但透明像素 RGBA(0,0,0,0) 经过颜色量化后可能被偏移为非纯黑，
+ * 导致 chroma key 失效。此函数确保透明像素严格等于 (0,0,0,255)，
+ * 同时不透明的黑色像素被微调为 (1,1,1,255) 以避免误匹配。
+ *
+ * @param {Array<{canvas: HTMLCanvasElement, delay: number}>} frames
+ * @returns {Array<{canvas: HTMLCanvasElement, delay: number}>}
+ */
+function prepareFramesForExport(frames) {
+  return frames.map(frame => {
+    const canvas = document.createElement('canvas');
+    canvas.width = frame.canvas.width;
+    canvas.height = frame.canvas.height;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    ctx.drawImage(frame.canvas, 0, 0);
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const pixels = imageData.data;
+
+    for (let i = 0; i < pixels.length; i += 4) {
+      const a = pixels[i + 3];
+      if (a < 128) {
+        // 透明像素 → 精确纯黑，让 chroma key 命中
+        pixels[i]     = 0;
+        pixels[i + 1] = 0;
+        pixels[i + 2] = 0;
+        pixels[i + 3] = 255;
+      } else if (pixels[i] === 0 && pixels[i + 1] === 0 && pixels[i + 2] === 0) {
+        // 不透明的纯黑像素 → 微调为 (1,1,1) 避免被误标记为透明
+        pixels[i]     = 1;
+        pixels[i + 1] = 1;
+        pixels[i + 2] = 1;
+      }
+    }
+
+    ctx.putImageData(imageData, 0, 0);
+    return { canvas, delay: frame.delay };
+  });
 }
 
 /**
@@ -273,6 +319,7 @@ function encodeGIF(frames, quality = 10) {
       height: h,
       background: '#00000000', // 透明背景
       transparent: '#000000',  // 黑色像素视为透明（透明区域 RGBA=0,0,0,0）
+      dither: false,           // 关闭抖动，防止透明色被扩散到其他颜色
       workerScript: 'lib/gif.worker.js' // 同源 Worker，避免 CDN 跨域问题
     });
 
