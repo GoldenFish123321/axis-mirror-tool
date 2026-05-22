@@ -99,10 +99,8 @@ async function parseGIFToFrames(arrayBuffer) {
 /**
  * 使用 omggif 解码所有帧为完整尺寸的 Canvas 序列
  *
- * 正确处理 GIF disposal types：
- * - 0/1: 保留当前画布内容（下帧在其上叠加）
- * - 2:  恢复到背景色（清除本帧区域为透明）
- * - 3:  恢复到上一帧绘制前的状态
+ * 每帧使用独立的干净缓冲区解码，帧与帧之间互不干扰。
+ * 透明区域保持透明，不会显示前面帧的内容。
  *
  * @param {object} reader - omggif GifReader 实例
  * @param {number} numFrames - 帧数
@@ -112,25 +110,17 @@ async function parseGIFToFrames(arrayBuffer) {
  */
 function decodeAllFrames(reader, numFrames, width, height) {
   const result = [];
-
-  // 累积画布（Uint8Array RGBA）
-  const rgba = new Uint8Array(width * height * 4);
-  // 用于 disposal_type=3 时恢复：保存每一帧绘制前的画布状态
-  let stateBeforeDraw = null;
+  const frameSize = width * height * 4;
 
   for (let i = 0; i < numFrames; i++) {
     const info = reader.frameInfo(i);
-    // delay 以百分之一秒为单位，转为毫秒
     const delay = (info.delay != null) ? info.delay * 10 : 100;
 
-    // --- 保存当前画布状态（用于帧自身的 disposal_type=3 后续恢复）---
-    stateBeforeDraw = new Uint8Array(rgba);
-
-    // --- 将当前帧合成到累积画布上 ---
-    // decodeAndBlitFrameRGBA 会处理帧内透明度（将透明索引像素跳过）
+    // 每帧用独立的干净缓冲区，帧之间互不干扰
+    const rgba = new Uint8Array(frameSize); // 全零 = 全透明
     reader.decodeAndBlitFrameRGBA(i, rgba);
 
-    // --- 保存当前帧快照 ---
+    // 将 RGBA 数据写入 Canvas
     const canvas = document.createElement('canvas');
     canvas.width = width;
     canvas.height = height;
@@ -139,38 +129,9 @@ function decodeAllFrames(reader, numFrames, width, height) {
     imageData.data.set(rgba);
     ctx.putImageData(imageData, 0, 0);
     result.push({ canvas, delay });
-
-    // --- 应用当前帧的 disposal，准备下一帧的画布 ---
-    const disposalType = info.disposal_type || 0;
-
-    if (disposalType === 2) {
-      // Restore to background：将本帧区域清为透明
-      clearRectInBuffer(rgba, width, height,
-        info.x, info.y, info.width, info.height);
-    } else if (disposalType === 3) {
-      // Restore to previous：恢复到本帧绘制前的画布状态
-      rgba.set(stateBeforeDraw);
-    }
-    // disposalType 0 或 1：保留当前画布内容不变
   }
 
   return result;
-}
-
-/**
- * 将 RGBA 缓冲区中指定矩形区域清为全透明
- */
-function clearRectInBuffer(rgba, bufWidth, bufHeight, x, y, w, h) {
-  const x1 = Math.max(0, x);
-  const y1 = Math.max(0, y);
-  const x2 = Math.min(bufWidth, x + w);
-  const y2 = Math.min(bufHeight, y + h);
-
-  for (let row = y1; row < y2; row++) {
-    const rowStart = (row * bufWidth + x1) * 4;
-    const rowLen = (x2 - x1) * 4;
-    rgba.fill(0, rowStart, rowStart + rowLen);
-  }
 }
 
 /**

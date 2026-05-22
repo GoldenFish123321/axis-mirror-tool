@@ -574,10 +574,6 @@ function handleFileUpload(file) {
         document.querySelectorAll('.separator.gif-only').forEach(el => { el.style.display = 'block'; });
         DOM.btnDownloadGIF.style.display = 'inline-flex';
 
-        // 显示背景色控件
-        document.querySelectorAll('.bg-color-group').forEach(el => { el.style.display = 'flex'; });
-        document.getElementById('sep-bg').style.display = 'block';
-
         // 同步复选框状态
         AppState.randomOrder = DOM.chkRandomOrder.checked;
         AppState.enableMirror = DOM.chkEnableMirror.checked;
