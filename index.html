@@ -93,10 +93,33 @@
 </div>
 
 <!-- ===== 脚本 ===== -->
-<!-- 第三方库：GIF 解码 -->
-<script src="https://unpkg.com/gifuct-js@2.1.2/dist/gifuct-js.js"></script>
-<!-- 第三方库：GIF 编码 -->
-<script src="https://unpkg.com/gif.js@0.2.0/dist/gif.js"></script>
+<!-- CDN 回退检查机制（当 jsdelivr 不可用时尝试 unpkg） -->
+<script>
+// 为每个 CDN 库添加失败回退
+(function() {
+  function fallback(e) {
+    var tag = e.target || e.srcElement;
+    var src = tag && tag.src;
+    if (!src) return;
+    // jsdelivr 失败 → 切到 unpkg
+    if (src.indexOf('cdn.jsdelivr.net') >= 0) {
+      var newSrc = src.replace('cdn.jsdelivr.net/npm/', 'unpkg.com/');
+      console.warn('[CDN] jsdelivr failed for ' + src + ', falling back to ' + newSrc);
+      var newTag = document.createElement('script');
+      newTag.src = newSrc;
+      newTag.async = false;
+      if (tag.parentNode) {
+        tag.parentNode.insertBefore(newTag, tag);
+      }
+    }
+  }
+  document.addEventListener('error', fallback, true);
+})();
+</script>
+<!-- 第三方库：GIF 解码 (omggif) -->
+<script src="https://cdn.jsdelivr.net/npm/omggif@1.0.10/omggif.js"></script>
+<!-- 第三方库：GIF 编码 (gif.js) -->
+<script src="https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.js"></script>
 
 <!-- 应用脚本（加载顺序：i18n → mirror → gif-handler → app） -->
 <script src="i18n.js"></script>
