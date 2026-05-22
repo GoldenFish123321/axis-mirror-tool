@@ -272,6 +272,7 @@ function encodeGIF(frames, quality = 10) {
       width: w,
       height: h,
       background: '#00000000', // 透明背景
+      transparent: '#000000',  // 黑色像素视为透明（透明区域 RGBA=0,0,0,0）
       workerScript: 'lib/gif.worker.js' // 同源 Worker，避免 CDN 跨域问题
     });
 
