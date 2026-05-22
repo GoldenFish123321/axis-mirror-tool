@@ -188,13 +188,20 @@ function encodeCompressedGIF(frames, maxDimension, maxFrames) {
     return Promise.reject(new Error('No frames to encode'));
   }
 
-  // 1. 帧采样：超过 maxFrames 帧时均匀采样
+  // 1. 帧采样：超过 maxFrames 帧时合并相邻帧的 delay 以保持总时长不变
   let processedFrames = frames;
   if (frames.length > maxFrames) {
-    const step = Math.ceil(frames.length / maxFrames);
+    // 分组大小 = ceil(原帧数 / 目标帧数)，将相邻帧的 delay 累积到每组第一帧
+    const groupSize = Math.ceil(frames.length / maxFrames);
     processedFrames = [];
-    for (let i = 0; i < frames.length; i += step) {
-      processedFrames.push(frames[i]);
+    for (let i = 0; i < frames.length; i += groupSize) {
+      const group = frames.slice(i, Math.min(i + groupSize, frames.length));
+      // 累积该组所有帧的 delay
+      const totalDelay = group.reduce((sum, f) => sum + f.delay, 0);
+      processedFrames.push({
+        canvas: group[0].canvas,
+        delay: totalDelay
+      });
     }
   }
 
