@@ -181,7 +181,7 @@ function shuffleFrames(frames) {
  */
 function encodeCompressedGIF(frames, maxDimension, maxFrames) {
   maxDimension = maxDimension || 600;
-  maxFrames = maxFrames || 50;
+  maxFrames = maxFrames || 120;
 
   if (!frames || frames.length === 0) {
     return Promise.reject(new Error('No frames to encode'));
