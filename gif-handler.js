@@ -200,11 +200,12 @@ function encodeGIF(frames, quality = 10) {
     }
 
     const encoder = new window.GIF({
-      workers: 0,
+      workers: 2,
       quality: quality,
       width: w,
       height: h,
-      background: '#00000000' // 透明背景
+      background: '#00000000', // 透明背景
+      workerScript: 'lib/gif.worker.js' // 同源 Worker，避免 CDN 跨域问题
     });
 
     // 添加每一帧
