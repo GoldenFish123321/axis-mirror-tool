@@ -2,9 +2,15 @@
  * gif-handler.js — GIF 解码、逐帧镜像处理、随机顺序、重新编码导出
  *
  * 解码使用 omggif，编码使用 gif.js
- * CDN（index.html 中引入）:
- *   - https://cdn.jsdelivr.net/npm/omggif@1.0.10/omggif.js   (解码)
- *   - https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.js   (编码)
+ * omggif / gif.js 已本地内联在 lib/ 目录中（通过 index.html script 标签引入）
+ *
+ * 依赖（按加载顺序）：
+ *   1. lib/omggif.js  → 暴露 GifReader / GifWriter 全局函数
+ *   2. lib/gif.js     → 暴露 GIF 全局构造函数
+ *
+ * omggif 的 CommonJS 导出在浏览器中不生效，但 GifReader 和 GifWriter
+ * 是函数声明，加载后自动成为 window 上的全局变量。
+ * index.html 中有一个内联脚本确保 window.Omggif 命名空间已创建。
  */
 
 /**
@@ -15,10 +21,11 @@
  */
 async function parseGIFToFrames(arrayBuffer) {
   // 检查 omggif 是否已加载
-  if (typeof Omggif === 'undefined') {
+  const GifReader = window.GifReader || (window.Omggif && window.Omggif.GifReader);
+  if (typeof GifReader !== 'function') {
     const err = new Error(
-      'omggif library not loaded: Omggif is undefined. ' +
-      'Check that https://cdn.jsdelivr.net/npm/omggif@1.0.10/omggif.js is accessible.'
+      'omggif library not loaded: GifReader is undefined. ' +
+      'Ensure lib/omggif.js is loaded before this script.'
     );
     err.code = 'LIB_NOT_LOADED';
     throw err;
@@ -45,7 +52,7 @@ async function parseGIFToFrames(arrayBuffer) {
   // 使用 omggif 解析
   let reader;
   try {
-    reader = new Omggif.GifReader(new Uint8Array(arrayBuffer));
+    reader = new GifReader(new Uint8Array(arrayBuffer));
   } catch (parseErr) {
     const err = new Error(
       `GIF parsing failed: ${parseErr.message || parseErr}`
@@ -92,7 +99,7 @@ async function parseGIFToFrames(arrayBuffer) {
 /**
  * 使用 omggif 解码所有帧为完整尺寸的 Canvas 序列
  *
- * @param {Omggif.GifReader} reader - omggif 读取器
+ * @param {object} reader - omggif GifReader 实例
  * @param {number} numFrames - 帧数
  * @param {number} width - 宽度
  * @param {number} height - 高度
@@ -108,7 +115,7 @@ function decodeAllFrames(reader, numFrames, width, height) {
   for (let i = 0; i < numFrames; i++) {
     // 获取帧信息
     const info = reader.frameInfo(i);
-    // delay 以毫秒为单位（omggif 返回的就是毫秒）
+    // gif delay 以百分之一秒为单位，转为毫秒
     const delay = (info.delay != null) ? info.delay * 10 : 100;
 
     // 解码为完整 RGBA（omggif 自动处理 disposal）
@@ -148,7 +155,7 @@ function applyMirrorToGIF(frames, p1, p2, keepPositiveSide) {
 /**
  * 打乱帧顺序（Fisher-Yates 洗牌）
  *
- * @param {Array} frames - 帧数组（会被原地修改）
+ * @param {Array} frames - 帧数组（不会修改原数组）
  * @returns {Array} 打乱后的帧数组
  */
 function shuffleFrames(frames) {
@@ -161,7 +168,7 @@ function shuffleFrames(frames) {
 }
 
 /**
- * 将帧序列编码为 GIF Blob（使用 gif.js）
+ * 将帧序列编码为 GIF Blob
  *
  * @param {Array<{canvas: HTMLCanvasElement, delay: number}>} frames - 帧数组
  * @param {number} [quality=10] - GIF 质量 (1-20, 越低质量越好但文件越大)
@@ -170,10 +177,10 @@ function shuffleFrames(frames) {
 function encodeGIF(frames, quality = 10) {
   return new Promise((resolve, reject) => {
     // gif.js 在全局暴露 GIF 构造函数
-    if (typeof GIF === 'undefined' || typeof GIF !== 'function') {
+    if (typeof window.GIF !== 'function') {
       const err = new Error(
         'gif.js library not loaded: GIF constructor is undefined. ' +
-        'Check that https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.js is accessible.'
+        'Ensure lib/gif.js is loaded before this script.'
       );
       err.code = 'ENC_LIB_NOT_LOADED';
       reject(err);
@@ -192,9 +199,7 @@ function encodeGIF(frames, quality = 10) {
       return;
     }
 
-    // gif.js 构造函数
-    // 使用 workers=0（主线程编码）避免 Web Worker 跨域问题
-    const encoder = new GIF({
+    const encoder = new window.GIF({
       workers: 0,
       quality: quality,
       width: w,
@@ -207,7 +212,7 @@ function encodeGIF(frames, quality = 10) {
       encoder.addFrame(frame.canvas, {
         delay: frame.delay,
         copy: true,
-        dispose: 1 // 保留上一帧
+        dispose: 1
       });
     }
 

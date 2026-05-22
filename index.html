@@ -93,33 +93,20 @@
 </div>
 
 <!-- ===== 脚本 ===== -->
-<!-- CDN 回退检查机制（当 jsdelivr 不可用时尝试 unpkg） -->
+<!-- 第三方库：GIF 解码 (omggif) - 本地内联，无 CDN 依赖 -->
+<script src="lib/omggif.js"></script>
+<!-- 第三方库：GIF 编码 (gif.js) - 本地内联，无 CDN 依赖 -->
+<script src="lib/gif.js"></script>
+<!-- 确保 omggif 的命名空间可用 -->
 <script>
-// 为每个 CDN 库添加失败回退
+// omggif 使用 function 声明（GifReader/GifWriter），在普通 <script> 中自动成为全局变量
+// 这里显式绑定到 Omggif 命名空间，方便 gif-handler.js 引用
 (function() {
-  function fallback(e) {
-    var tag = e.target || e.srcElement;
-    var src = tag && tag.src;
-    if (!src) return;
-    // jsdelivr 失败 → 切到 unpkg
-    if (src.indexOf('cdn.jsdelivr.net') >= 0) {
-      var newSrc = src.replace('cdn.jsdelivr.net/npm/', 'unpkg.com/');
-      console.warn('[CDN] jsdelivr failed for ' + src + ', falling back to ' + newSrc);
-      var newTag = document.createElement('script');
-      newTag.src = newSrc;
-      newTag.async = false;
-      if (tag.parentNode) {
-        tag.parentNode.insertBefore(newTag, tag);
-      }
-    }
+  if (typeof GifReader === 'function' && typeof window.Omggif === 'undefined') {
+    window.Omggif = { GifReader: GifReader, GifWriter: GifWriter || null };
   }
-  document.addEventListener('error', fallback, true);
 })();
 </script>
-<!-- 第三方库：GIF 解码 (omggif) -->
-<script src="https://cdn.jsdelivr.net/npm/omggif@1.0.10/omggif.js"></script>
-<!-- 第三方库：GIF 编码 (gif.js) -->
-<script src="https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.js"></script>
 
 <!-- 应用脚本（加载顺序：i18n → mirror → gif-handler → app） -->
 <script src="i18n.js"></script>
